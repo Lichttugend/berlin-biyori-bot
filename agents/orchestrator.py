@@ -3,6 +3,7 @@
 from agents.scraper import fetch_articles
 from agents.translator import translate_article
 from agents.formatter import format_for_x
+from agents.ogp import fetch_ogp_image
 from agents.poster import load_posted_urls, post_tweet
 
 # 1 回の実行で最大投稿する記事数
@@ -48,8 +49,15 @@ def run(dry_run: bool = False, only_agent: str | None = None) -> None:
             print(tweet_text)
             continue
 
+        # --- OGP 画像取得 ---
+        image_bytes = fetch_ogp_image(article["url"])
+        if image_bytes:
+            print(f"[orchestrator] OGP 画像取得成功 ({len(image_bytes):,} bytes)")
+        else:
+            print("[orchestrator] OGP 画像なし — テキストのみ投稿")
+
         # --- Poster ---
-        success = post_tweet(tweet_text, article["url"], dry_run=dry_run)
+        success = post_tweet(tweet_text, article["url"], image_bytes=image_bytes, dry_run=dry_run)
         if success:
             posted_count += 1
 
