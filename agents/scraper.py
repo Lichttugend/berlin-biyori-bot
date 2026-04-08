@@ -5,15 +5,36 @@ from datetime import datetime, timezone
 from typing import Optional
 
 FEEDS = [
-    {"source": "rbb24", "url": "https://www.rbb24.de/aktuell/index.xml"},
-    {"source": "berlin.de", "url": "https://www.berlin.de/aktuelles/rss.xml"},
-    {"source": "berliner-zeitung", "url": "https://www.berliner-zeitung.de/feed.xml"},
-    {"source": "tagesspiegel", "url": "https://www.tagesspiegel.de/feed.rss"},
-    {"source": "tagesschau", "url": "https://www.tagesschau.de/xml/rss2/"},
+    # ベルリン・ブランデンブルク専門（フィルタ不要）
+    {"source": "rbb24", "url": "https://www.rbb24.de/berlin/index.xml", "berlin_only": False},
+    {"source": "berlin.de", "url": "https://www.berlin.de/aktuelles/rss.xml", "berlin_only": False},
+    # ベルリン地元紙だが国際記事も混在するためフィルタあり
+    {"source": "berliner-zeitung", "url": "https://www.berliner-zeitung.de/feed.xml", "berlin_only": True},
+    {"source": "tagesspiegel", "url": "https://www.tagesspiegel.de/feed.rss", "berlin_only": True},
+]
+
+# これらのキーワードがタイトルまたはサマリーに含まれる記事のみを対象とする
+BERLIN_KEYWORDS = [
+    "berlin", "berliner", "berlins",
+    "brandenburg",
+    "bvg", "s-bahn", "u-bahn", "s bahn", "u bahn",
+    "senat", "abgeordnetenhaus",
+    "mitte", "prenzlauer", "kreuzberg", "neukölln", "neukoelln",
+    "charlottenburg", "friedrichshain", "spandau", "steglitz",
+    "tempelhof", "treptow", "lichtenberg", "marzahn", "pankow",
+    "reinickendorf", "köpenick", "koepenick",
+    "deutschland", "deutsch", "german",
+    "bundesregierung", "bundestag", "bundesrat",
 ]
 
 MAX_SUMMARY_LENGTH = 500
 MAX_ARTICLES_PER_FEED = 3
+
+
+def _is_berlin_related(title: str, summary: str) -> bool:
+    """タイトルまたはサマリーにベルリン・ドイツ生活関連キーワードが含まれるか判定"""
+    text = (title + " " + summary).lower()
+    return any(kw in text for kw in BERLIN_KEYWORDS)
 
 
 def _parse_published(entry) -> str:
@@ -53,11 +74,15 @@ def fetch_articles(posted_urls: set[str]) -> list[dict]:
                 title = (getattr(entry, "title", "") or "").strip()
                 if not title:
                     continue
+                summary = _extract_summary(entry)
+                if feed_info["berlin_only"] and not _is_berlin_related(title, summary):
+                    print(f"[scraper] スキップ（ベルリン無関係）: {title[:40]}")
+                    continue
                 articles.append(
                     {
                         "url": url,
                         "title": title,
-                        "summary": _extract_summary(entry),
+                        "summary": summary,
                         "published": _parse_published(entry),
                         "source": feed_info["source"],
                     }
