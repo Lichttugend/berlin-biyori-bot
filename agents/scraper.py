@@ -13,16 +13,21 @@ FEEDS = [
     {"source": "tagesspiegel", "url": "https://www.tagesspiegel.de/feed.rss", "berlin_only": True},
 ]
 
-# これらのキーワードがタイトルまたはサマリーに含まれる記事のみを対象とする
-BERLIN_KEYWORDS = [
+# ベルリン固有のキーワード（単独でベルリン関連と判定できる）
+BERLIN_SPECIFIC_KEYWORDS = [
     "berlin", "berliner", "berlins",
-    "brandenburg",
     "bvg", "s-bahn", "u-bahn", "s bahn", "u bahn",
     "senat", "abgeordnetenhaus",
     "mitte", "prenzlauer", "kreuzberg", "neukölln", "neukoelln",
     "charlottenburg", "friedrichshain", "spandau", "steglitz",
     "tempelhof", "treptow", "lichtenberg", "marzahn", "pankow",
     "reinickendorf", "köpenick", "koepenick",
+    "brandenburg",
+]
+
+# 国レベルのキーワード（単独では不十分。ベルリン固有キーワードとの共出現が必要）
+# 例: 「bundesregierung beschließt...」だけではベルリン関連とは言えない
+GERMANY_GENERAL_KEYWORDS = [
     "deutschland", "deutsch", "german",
     "bundesregierung", "bundestag", "bundesrat",
 ]
@@ -32,9 +37,17 @@ MAX_ARTICLES_PER_FEED = 3
 
 
 def _is_berlin_related(title: str, summary: str) -> bool:
-    """タイトルまたはサマリーにベルリン・ドイツ生活関連キーワードが含まれるか判定"""
+    """タイトルまたはサマリーにベルリン関連キーワードが含まれるか判定。
+
+    ベルリン固有キーワードが1つでもあれば対象。
+    国レベルキーワード（bundesregierung 等）は単独では不十分で、
+    ベルリン固有キーワードとの共出現が必要。
+    """
     text = (title + " " + summary).lower()
-    return any(kw in text for kw in BERLIN_KEYWORDS)
+    if any(kw in text for kw in BERLIN_SPECIFIC_KEYWORDS):
+        return True
+    # 国レベルキーワード単独ではベルリン関連と判定しない
+    return False
 
 
 def _parse_published(entry) -> str:

@@ -5,6 +5,9 @@ on:
     - cron: '0 */3 * * *'
   workflow_dispatch:
 
+# デフォルトですべての権限を拒否し、ジョブ単位で必要な権限のみ付与する
+permissions: {}
+
 jobs:
   post:
     runs-on: ubuntu-latest
