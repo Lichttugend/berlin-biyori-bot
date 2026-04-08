@@ -1,5 +1,7 @@
 """Orchestrator Agent — スクレイプ → 翻訳 → 整形 → 投稿 のフローを管理する"""
 
+import time
+
 from agents.scraper import fetch_articles
 from agents.translator import translate_article
 from agents.formatter import format_for_x
@@ -60,5 +62,7 @@ def run(dry_run: bool = False, only_agent: str | None = None) -> None:
         success = post_tweet(tweet_text, article["url"], image_bytes=image_bytes, dry_run=dry_run)
         if success:
             posted_count += 1
+            if not dry_run:
+                time.sleep(10)
 
     print(f"[orchestrator] 完了 — 投稿: {posted_count} 件")
