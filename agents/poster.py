@@ -87,6 +87,18 @@ def post_tweet(text: str, url: str, image_bytes: bytes | None = None, dry_run: b
         data["last_updated"] = datetime.now(timezone.utc).isoformat()
         _save_posted_data(data)
         return True
+    except tweepy.errors.Forbidden as e:
+        # 重複コンテンツエラーの場合は投稿済みとして記録し、再試行を防ぐ
+        if "duplicate" in str(e).lower():
+            print(f"[poster] 重複コンテンツのためスキップ、投稿済みとして記録: {url}")
+            data = _load_posted_data()
+            if url not in data["posted"]:
+                data["posted"].append(url)
+            data["last_updated"] = datetime.now(timezone.utc).isoformat()
+            _save_posted_data(data)
+        else:
+            print(f"[poster] 投稿失敗 403 ({url}): {e}")
+        return False
     except Exception as e:
         print(f"[poster] 投稿失敗 ({url}): {e}")
         return False
