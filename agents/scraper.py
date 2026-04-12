@@ -1,16 +1,19 @@
 """Scraper Agent — RSS フィードからベルリンのニュースを収集する"""
 
 import feedparser
+import httpx
 from datetime import datetime, timezone
 from typing import Optional
 
+FEED_TIMEOUT_SECONDS = 15
+
 FEEDS = [
     # ベルリン・ブランデンブルク専門（フィルタ不要）
-    {"source": "rbb24", "url": "https://www.rbb24.de/berlin/index.xml", "berlin_only": False},
-    {"source": "berlin.de", "url": "https://www.berlin.de/aktuelles/rss.xml", "berlin_only": False},
+    {"source": "rbb24", "url": "https://www.rbb24.de/berlin/index.xml/feed=rss.xml", "berlin_only": False},
     # ベルリン地元紙だが国際記事も混在するためフィルタあり
     {"source": "berliner-zeitung", "url": "https://www.berliner-zeitung.de/feed.xml", "berlin_only": True},
-    {"source": "tagesspiegel", "url": "https://www.tagesspiegel.de/feed.rss", "berlin_only": True},
+    {"source": "morgenpost", "url": "https://www.morgenpost.de/rss", "berlin_only": True},
+    {"source": "tagesspiegel", "url": "https://www.tagesspiegel.de/news.xml", "berlin_only": True},
 ]
 
 # ベルリン固有のキーワード（単独でベルリン関連と判定できる）
@@ -76,7 +79,9 @@ def fetch_articles(posted_urls: set[str]) -> list[dict]:
     articles = []
     for feed_info in FEEDS:
         try:
-            feed = feedparser.parse(feed_info["url"])
+            response = httpx.get(feed_info["url"], timeout=FEED_TIMEOUT_SECONDS, follow_redirects=True)
+            response.raise_for_status()
+            feed = feedparser.parse(response.text)
             count = 0
             for entry in feed.entries:
                 if count >= MAX_ARTICLES_PER_FEED:

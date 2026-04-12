@@ -3,18 +3,24 @@
 import io
 import json
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import tweepy
 
 POSTED_URLS_PATH = Path(__file__).parent.parent / "data" / "posted_urls.json"
+URL_TTL_DAYS = 30
 
 
 def _load_posted_data() -> dict:
-    if POSTED_URLS_PATH.exists():
-        return json.loads(POSTED_URLS_PATH.read_text(encoding="utf-8"))
-    return {"posted": [], "last_updated": ""}
+    if not POSTED_URLS_PATH.exists():
+        return {"posted": {}, "last_updated": ""}
+    data = json.loads(POSTED_URLS_PATH.read_text(encoding="utf-8"))
+    # 旧フォーマット（list）を新フォーマット（dict）に移行
+    if isinstance(data.get("posted"), list):
+        now = datetime.now(timezone.utc).isoformat()
+        data["posted"] = {url: now for url in data["posted"]}
+    return data
 
 
 def _save_posted_data(data: dict) -> None:
@@ -24,7 +30,21 @@ def _save_posted_data(data: dict) -> None:
 
 
 def load_posted_urls() -> set[str]:
-    return set(_load_posted_data().get("posted", []))
+    data = _load_posted_data()
+    cutoff = datetime.now(timezone.utc) - timedelta(days=URL_TTL_DAYS)
+    active = {}
+    for url, ts in data.get("posted", {}).items():
+        try:
+            if datetime.fromisoformat(ts) >= cutoff:
+                active[url] = ts
+        except (ValueError, TypeError):
+            active[url] = ts  # パース不能なものはそのまま残す
+    if len(active) != len(data.get("posted", {})):
+        expired = len(data.get("posted", {})) - len(active)
+        print(f"[poster] {expired} 件の期限切れURLを削除")
+        data["posted"] = active
+        _save_posted_data(data)
+    return set(active.keys())
 
 
 def _get_client() -> tweepy.Client:
@@ -81,20 +101,20 @@ def post_tweet(text: str, url: str, image_bytes: bytes | None = None, dry_run: b
         tweet_id = response.data["id"]
         print(f"[poster] 投稿成功: https://x.com/i/web/status/{tweet_id}")
 
+        now = datetime.now(timezone.utc).isoformat()
         data = _load_posted_data()
-        if url not in data["posted"]:
-            data["posted"].append(url)
-        data["last_updated"] = datetime.now(timezone.utc).isoformat()
+        data["posted"][url] = now
+        data["last_updated"] = now
         _save_posted_data(data)
         return True
     except tweepy.errors.Forbidden as e:
         # 重複コンテンツエラーの場合は投稿済みとして記録し、再試行を防ぐ
         if "duplicate" in str(e).lower():
             print(f"[poster] 重複コンテンツのためスキップ、投稿済みとして記録: {url}")
+            now = datetime.now(timezone.utc).isoformat()
             data = _load_posted_data()
-            if url not in data["posted"]:
-                data["posted"].append(url)
-            data["last_updated"] = datetime.now(timezone.utc).isoformat()
+            data["posted"][url] = now
+            data["last_updated"] = now
             _save_posted_data(data)
         else:
             print(f"[poster] 投稿失敗 403 ({url}): {e}")
