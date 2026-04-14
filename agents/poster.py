@@ -99,7 +99,8 @@ def post_tweet(text: str, url: str, image_bytes: bytes | None = None, dry_run: b
 
         response = client.create_tweet(text=text, media_ids=media_ids)
         tweet_id = response.data["id"]
-        print(f"[poster] 投稿成功: https://x.com/i/web/status/{tweet_id}")
+        has_media = media_ids is not None
+        print(f"[poster] 投稿成功 (画像あり: {has_media}): https://x.com/i/web/status/{tweet_id}")
 
         now = datetime.now(timezone.utc).isoformat()
         data = _load_posted_data()
@@ -118,6 +119,22 @@ def post_tweet(text: str, url: str, image_bytes: bytes | None = None, dry_run: b
             _save_posted_data(data)
         else:
             print(f"[poster] 投稿失敗 403 ({url}): {e}")
+            print(f"[poster] エラー詳細: api_codes={getattr(e, 'api_codes', None)} api_errors={getattr(e, 'api_errors', None)}")
+            # media_idsが原因の可能性があるため、画像なしで再試行
+            if media_ids is not None:
+                print(f"[poster] 画像なしで再試行...")
+                try:
+                    response = client.create_tweet(text=text)
+                    tweet_id = response.data["id"]
+                    print(f"[poster] 再試行成功 (画像なし): https://x.com/i/web/status/{tweet_id}")
+                    now = datetime.now(timezone.utc).isoformat()
+                    data = _load_posted_data()
+                    data["posted"][url] = now
+                    data["last_updated"] = now
+                    _save_posted_data(data)
+                    return True
+                except Exception as e2:
+                    print(f"[poster] 再試行も失敗 ({url}): {e2}")
         return False
     except Exception as e:
         print(f"[poster] 投稿失敗 ({url}): {e}")
