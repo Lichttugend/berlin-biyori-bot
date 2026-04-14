@@ -8,8 +8,6 @@ from typing import Optional
 FEED_TIMEOUT_SECONDS = 15
 
 FEEDS = [
-    # ベルリン・ブランデンブルク専門（フィルタ不要）
-    {"source": "rbb24", "url": "https://www.rbb24.de/berlin/index.xml/feed=rss.xml", "berlin_only": False, "content_type": "news"},
     # ベルリン地元紙だが国際記事も混在するためフィルタあり
     {"source": "berliner-zeitung", "url": "https://www.berliner-zeitung.de/feed.xml", "berlin_only": True, "content_type": "news"},
     {"source": "morgenpost", "url": "https://www.morgenpost.de/rss", "berlin_only": True, "content_type": "news"},
