@@ -48,8 +48,9 @@ def load_posted_urls() -> set[str]:
 
 
 def _get_client() -> tweepy.Client:
+    # bearer_token を渡すと tweepy が app-only 認証を優先する場合があるため除外
+    # create_tweet は OAuth 1.0a (user context) が必要
     return tweepy.Client(
-        bearer_token=os.environ["X_BEARER_TOKEN"],
         consumer_key=os.environ["X_API_KEY"],
         consumer_secret=os.environ["X_API_SECRET"],
         access_token=os.environ["X_ACCESS_TOKEN"],
