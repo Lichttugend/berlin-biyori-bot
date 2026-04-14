@@ -121,6 +121,9 @@ def post_tweet(text: str, url: str, image_bytes: bytes | None = None, dry_run: b
         else:
             print(f"[poster] 投稿失敗 403 ({url}): {e}")
             print(f"[poster] エラー詳細: api_codes={getattr(e, 'api_codes', None)} api_errors={getattr(e, 'api_errors', None)}")
+            response_obj = getattr(e, 'response', None)
+            if response_obj is not None:
+                print(f"[poster] HTTPレスポンス: {response_obj.status_code} {response_obj.text[:500]}")
             # media_idsが原因の可能性があるため、画像なしで再試行
             if media_ids is not None:
                 print(f"[poster] 画像なしで再試行...")
