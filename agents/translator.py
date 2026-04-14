@@ -19,6 +19,7 @@ def translate_article(article: dict) -> dict:
     client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
     template = _load_prompt_template()
     prompt = template.format(
+        content_type=article.get("content_type", "news"),
         title=article["title"],
         summary=article["summary"] or article["title"],
     )

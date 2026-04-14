@@ -4,8 +4,10 @@
 TWITTER_URL_LENGTH = 23
 MAX_TWEET_LENGTH = 280
 
-HASHTAGS = "#ベルリン #ドイツ生活 #berlin"
-LEAD_EMOJI = "🇩🇪"
+NEWS_HASHTAGS = "#ベルリン #ドイツ生活 #berlin"
+EVENT_HASHTAGS = "#ベルリン #ベルリンイベント #berlin"
+NEWS_EMOJI = "🇩🇪"
+EVENT_EMOJI = "🎭"
 
 
 def format_for_x(article: dict) -> str:
@@ -13,10 +15,14 @@ def format_for_x(article: dict) -> str:
     title = article.get("ja_title") or article.get("title", "")
     summary = article.get("ja_summary", "")
     url = article["url"]
+    is_event = article.get("content_type") == "event"
+
+    lead_emoji = EVENT_EMOJI if is_event else NEWS_EMOJI
+    hashtags = EVENT_HASHTAGS if is_event else NEWS_HASHTAGS
 
     # 固定部分の文字数を計算（URL は TWITTER_URL_LENGTH として扱う）
     # 構成: {emoji} {title}\n\n{summary}\n\n{hashtags}\n{url}
-    fixed = f"{LEAD_EMOJI} \n\n\n\n{HASHTAGS}\n"
+    fixed = f"{lead_emoji} \n\n\n\n{hashtags}\n"
     fixed_len = len(fixed) + TWITTER_URL_LENGTH
 
     # title + summary に使える文字数
@@ -36,10 +42,10 @@ def format_for_x(article: dict) -> str:
         else:
             summary = ""
 
-    parts = [f"{LEAD_EMOJI} {title}"]
+    parts = [f"{lead_emoji} {title}"]
     if summary:
         parts.append(summary)
-    parts.append(HASHTAGS)
+    parts.append(hashtags)
     parts.append(url)
 
     return "\n\n".join(parts)

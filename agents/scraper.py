@@ -9,11 +9,15 @@ FEED_TIMEOUT_SECONDS = 15
 
 FEEDS = [
     # ベルリン・ブランデンブルク専門（フィルタ不要）
-    {"source": "rbb24", "url": "https://www.rbb24.de/berlin/index.xml/feed=rss.xml", "berlin_only": False},
+    {"source": "rbb24", "url": "https://www.rbb24.de/berlin/index.xml/feed=rss.xml", "berlin_only": False, "content_type": "news"},
     # ベルリン地元紙だが国際記事も混在するためフィルタあり
-    {"source": "berliner-zeitung", "url": "https://www.berliner-zeitung.de/feed.xml", "berlin_only": True},
-    {"source": "morgenpost", "url": "https://www.morgenpost.de/rss", "berlin_only": True},
-    {"source": "tagesspiegel", "url": "https://www.tagesspiegel.de/news.xml", "berlin_only": True},
+    {"source": "berliner-zeitung", "url": "https://www.berliner-zeitung.de/feed.xml", "berlin_only": True, "content_type": "news"},
+    {"source": "morgenpost", "url": "https://www.morgenpost.de/rss", "berlin_only": True, "content_type": "news"},
+    {"source": "tagesspiegel", "url": "https://www.tagesspiegel.de/news.xml", "berlin_only": True, "content_type": "news"},
+    # ベルリンのイベント・カルチャー情報
+    {"source": "tip-berlin", "url": "https://www.tip-berlin.de/feed/", "berlin_only": True, "content_type": "event"},
+    # rbb24 文化・イベントニュース（ベルリン・ブランデンブルク）
+    {"source": "rbb24-kultur", "url": "https://www.rbb24.de/kultur/index.xml/feed=rss.xml", "berlin_only": True, "content_type": "event"},
 ]
 
 # ベルリン固有のキーワード（単独でベルリン関連と判定できる）
@@ -36,7 +40,7 @@ GERMANY_GENERAL_KEYWORDS = [
 ]
 
 MAX_SUMMARY_LENGTH = 500
-MAX_ARTICLES_PER_FEED = 3
+MAX_ARTICLES_PER_FEED = 10
 
 
 def _is_berlin_related(title: str, summary: str) -> bool:
@@ -103,6 +107,7 @@ def fetch_articles(posted_urls: set[str]) -> list[dict]:
                         "summary": summary,
                         "published": _parse_published(entry),
                         "source": feed_info["source"],
+                        "content_type": feed_info.get("content_type", "news"),
                     }
                 )
                 count += 1
