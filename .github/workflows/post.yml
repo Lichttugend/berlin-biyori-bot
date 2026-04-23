@@ -13,12 +13,14 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v5
 
       - name: Install dependencies
         run: uv sync
@@ -40,4 +42,8 @@ jobs:
           git add data/posted_urls.json
           git diff --staged --quiet || git commit -m "chore: update posted_urls cache"
           git pull --rebase origin main
-          git push
+          for i in 1 2 3; do
+            git push && break
+            echo "git push failed (attempt $i), retrying in 10s..."
+            sleep 10
+          done
